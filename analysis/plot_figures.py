@@ -478,18 +478,12 @@ def fig_pred_vs_true_colored(fit_result: dict, df: pd.DataFrame, save_dir: str,
             max(y_true.max(), y_pred.max()) + 0.05]
     ax.plot(lims, lims, "k--", alpha=0.4, linewidth=1)
 
-    r2 = fit_result.get("r_squared", 0)
-    mape = fit_result.get("mape", 0)
-    k = fit_result.get("k", "?")
-    ax.text(0.05, 0.95, f"R² = {r2:.3f}\nMAPE = {mape:.2f}%\nk = {k}",
-            transform=ax.transAxes, fontsize=12, verticalalignment="top",
-            bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8))
-
     ax.set_xlabel("Observed Loss")
     ax.set_ylabel("Predicted Loss")
-    ax.set_title("Joint Scaling Law: Predicted vs Observed")
     if colored:
-        ax.legend(title="LLM", loc="lower right")
+        ax.legend(title="LLM", loc="upper center",
+                  bbox_to_anchor=(0.5, 1.02), ncol=4, frameon=False,
+                  fontsize=10, title_fontsize=10)
     ax.set_aspect("equal")
     ax.grid(True, alpha=0.3)
 
@@ -662,26 +656,39 @@ def fig_extrapolation(extrap_result: dict, save_dir: str,
 
     fig, ax = plt.subplots(figsize=(7, 7))
 
-    ax.scatter(y_true, y_pred, s=100, c="crimson", edgecolors="black",
-               linewidth=0.5, zorder=5, label="32B predictions")
+    lims = [min(y_true.min(), y_pred.min()) - 0.1,
+            max(y_true.max(), y_pred.max()) + 0.1]
+    # Identity line
+    id_line = np.linspace(lims[0], lims[1], 100)
+    ax.plot(id_line, id_line, "k--", alpha=0.5, linewidth=1)
+    # ±15% band
+    ax.fill_between(id_line, id_line * 0.85, id_line * 1.15,
+                     alpha=0.08, color="gray", label="±15% band")
 
-    lims = [min(y_true.min(), y_pred.min()) - 0.05,
-            max(y_true.max(), y_pred.max()) + 0.05]
-    ax.plot(lims, lims, "k--", alpha=0.5)
-
-    # Error bars (diagonal distance)
+    # Vertical connectors (actual → predicted)
     for yt, yp in zip(y_true, y_pred):
-        ax.plot([yt, yt], [yt, yp], "r-", alpha=0.3, linewidth=1)
+        ax.plot([yt, yt], [yt, yp], color="crimson", alpha=0.4, linewidth=1.5)
 
-    ax.text(0.05, 0.95, f"MAPE = {mape:.2f}%\nn = {len(y_true)}",
-            transform=ax.transAxes, fontsize=12, verticalalignment="top",
-            bbox=dict(boxstyle="round", facecolor="lightyellow", alpha=0.8))
+    # Actual (open) on identity, Predicted (filled) off identity
+    ax.scatter(y_true, y_true, s=80, facecolors="none", edgecolors="gray",
+               linewidth=1.5, zorder=5, label="Actual (32B)")
+    ax.scatter(y_true, y_pred, s=80, c="crimson", edgecolors="black",
+               linewidth=0.5, zorder=6, label="Predicted (1.5B–14B law)")
+
+    # Annotate best point
+    errors = np.abs(y_true - y_pred) / y_true
+    best_idx = np.argmin(errors)
+    ax.annotate(f"{errors[best_idx]*100:.0f}% err",
+                xy=(y_true[best_idx], y_pred[best_idx]),
+                xytext=(15, -20), textcoords="offset points",
+                fontsize=9, arrowprops=dict(arrowstyle="->", color="black", lw=0.8))
 
     ax.set_xlabel("Observed Loss (32B)")
-    ax.set_ylabel("Predicted Loss (from ≤14B fit)")
-    ax.set_title("Extrapolation: 32B Out-of-Distribution")
+    ax.set_ylabel("Predicted Loss (from 1.5B–14B law)")
+    ax.set_xlim(lims)
+    ax.set_ylim(lims)
     ax.set_aspect("equal")
-    ax.legend(loc="lower right")
+    ax.legend(loc="upper left", fontsize=9, framealpha=0.9)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
