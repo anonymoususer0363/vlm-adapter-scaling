@@ -38,7 +38,7 @@ source setup_env.sh
 bash scripts/run.sh g26
 ```
 
-All 437 YAML configs are in `configs/`. Each specifies the LLM, adapter level, token count, data size, learning rate, and seed.
+All 441 YAML configs are in `configs/`. Each specifies the LLM, adapter level, token count, data size, learning rate, and seed.
 
 ### Key hyperparameters
 - Optimizer: AdamW ($\beta_1$=0.9, $\beta_2$=0.95, weight decay 0.1)
