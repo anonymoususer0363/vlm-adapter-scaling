@@ -1,0 +1,15 @@
+llm_name: Qwen/Qwen2.5-3B
+adapter_level: M
+num_queries: 16
+seed: 42
+run_name: g25_3B_T16_M_d552k_3ep_s42
+num_epochs: 3
+batch_size: 32
+grad_accum_steps: 1
+lr: 0.0001
+eval_interval_steps: 500
+save_interval_steps: 5000
+train_data: data/processed/train.jsonl
+val_data: data/processed/val.jsonl
+image_root: data/llava_pretrain
+output_dir: checkpoints

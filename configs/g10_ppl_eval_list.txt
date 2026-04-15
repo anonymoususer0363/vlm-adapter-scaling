@@ -1,0 +1,20 @@
+# G10 PPL eval — 14 checkpoints (sorted by model size for sequential loading)
+# 0.5B
+checkpoints/g0v2_0.5B_T64_M_d552k_s42
+checkpoints/g2_0.5B_T8_M_d50m_s42
+# 3B
+checkpoints/g0v2_3B_T64_M_d2m_s42
+checkpoints/g1_3B_T64_S_d50m_s42
+checkpoints/g1_3B_T64_XL_d50m_s42
+checkpoints/g2_3B_T64_M_d50m_s42
+checkpoints/g3_3B_T32_S_d50m_s42
+checkpoints/g3_3B_T64_XL_d50m_s42
+checkpoints/g4_3B_T32_M_d50m_res224_s42
+# 7B
+checkpoints/g0v2_7B_T64_M_d2m_s42
+checkpoints/g2_7B_T128_M_d50m_s42
+checkpoints/g7_7B_T128_XL_d50m_s42
+# 14B
+checkpoints/g0v2_14B_T64_M_d552k_s42
+# 32B (2 GPU, device_map=auto)
+checkpoints/g7_32B_T128_M_d50m_s42

@@ -1,0 +1,51 @@
+# Data and models (large files)
+data/
+hf_cache/
+checkpoints/
+eval_results/
+eval_results_ppl/
+
+# Internal project management
+CLAUDE.md
+EXPERIMENT_DESIGN.md
+PROJECT_SUMMARY.md
+.claude/
+
+# Review files
+gptreview*.txt
+gpt.txt
+review*.txt
+
+# Reference papers and images
+*.pdf
+*.jpg
+*.png
+
+# NeurIPS template
+Formatting_Instructions_For_NeurIPS_2026.zip
+
+# Paper source (separate from code)
+paper/
+
+# Old results (use analysis/ CSVs instead)
+results_all.csv
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.eggs/
+
+# Logs (contain personal paths)
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

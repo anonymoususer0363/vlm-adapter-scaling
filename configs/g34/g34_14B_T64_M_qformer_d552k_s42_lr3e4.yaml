@@ -1,0 +1,16 @@
+llm_name: Qwen/Qwen2.5-14B
+vision_name: google/siglip-so400m-patch14-384
+adapter_level: M
+num_queries: 64
+adapter_num_layers: 2
+adapter_type: qformer
+train_data: data/processed/train.jsonl
+val_data: data/processed/val.jsonl
+image_root: data/llava_pretrain
+num_epochs: 1
+batch_size: 16
+lr: 0.0003
+seed: 42
+run_name: g34_14B_T64_M_qformer_d552k_s42_lr3e4
+output_dir: checkpoints
+use_wandb: false
