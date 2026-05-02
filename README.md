@@ -1,6 +1,6 @@
-# What Matters for Vision Adapters? Data and Capacity Trump Token Count
+# Rethinking Scaling Laws for Vision-Language Adapters
 
-Code for the paper *"Scaling Laws for Vision-Language Model Adapters: Data and Capacity Trump Token Count"*.
+Code for the paper *"Rethinking Scaling Laws for Vision-Language Adapters: Learning Rate, Adapter Capacity, and Data Exposure"*.
 
 We derive the first joint scaling law $L(N_L, D, T, N_A)$ for vision-language adapter design, covering LLM scale, data size, visual token count, and adapter capacity. We show that a fixed suboptimal learning rate qualitatively reverses scaling conclusions, and that at the proper learning rate an optimal adapter capacity exists ("bigger is not always better").
 

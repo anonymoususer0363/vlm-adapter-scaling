@@ -5,9 +5,9 @@
 #   source setup_env.sh                    # 기본 (모든 것 프로젝트 안)
 #
 # NAS 사용 시:
-#   export VLM_NAS=/mnt/148TB/hyeongjin
+#   export VLM_NAS=/path/to/shared/storage
 #   source setup_env.sh
-#   → HF_HOME=$VLM_NAS/hf_cache, data=$VLM_NAS/data, checkpoints=$VLM_NAS/checkpoints
+#   → HF_HOME=$VLM_NAS/vlmadapter/hf_cache, data=$VLM_NAS/vlmadapter/data, etc.
 
 PROJECT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 

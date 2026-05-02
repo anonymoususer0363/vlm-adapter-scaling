@@ -1276,6 +1276,7 @@ def analyze_joint(
         y_pred = _predict_joint_fit_result(best, N_L, D, N_A, T)
         result["y_pred"] = y_pred
         result["y_true"] = L
+        result["llm_labels"] = df_fit["llm_size"].astype(str).tolist()
         result["mape"] = _compute_mape(L, y_pred)
         result["winner_effective_params"] = summarize_effective_params(best)
 

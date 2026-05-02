@@ -24,14 +24,19 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-# Style
+# Style — Type 42 fonts to avoid Type 3 (NeurIPS requirement)
 plt.rcParams.update({
+    "pdf.fonttype": 42,
+    "ps.fonttype": 42,
+    "font.family": "serif",
+    "font.serif": ["Times New Roman"],
+    "mathtext.fontset": "stix",
     "font.size": 12,
     "axes.labelsize": 14,
     "axes.titlesize": 14,
-    "xtick.labelsize": 11,
-    "ytick.labelsize": 11,
-    "legend.fontsize": 10,
+    "xtick.labelsize": 12,
+    "ytick.labelsize": 12,
+    "legend.fontsize": 12,
     "figure.dpi": 150,
     "savefig.dpi": 300,
     "savefig.bbox": "tight",
@@ -91,7 +96,7 @@ def fig1_base_power_law(df: pd.DataFrame, save_dir: str):
         label = n_l.split("-")[-1]
         ax.plot(subset[d_col], subset["best_val_loss"], "o-", label=label)
     ax.set_xscale("log")
-    ax.set_xlabel("Training Data Size (D)")
+    ax.set_xlabel("Seen-pair exposure (D)")
     ax.set_ylabel("Validation Loss")
     ax.set_title("(b) Loss vs. D")
     ax.legend()
@@ -425,6 +430,7 @@ def _filter_df_for_fit(df: pd.DataFrame, joint_info: dict) -> pd.DataFrame:
     group_counts = joint_info.get("group_counts", {})
     exclude_sizes = joint_info.get("exclude_llm_sizes", [])
     div_threshold = joint_info.get("divergence_threshold", 1.5)
+    expected_n = sum(group_counts.values()) if group_counts else None
 
     # Filter by groups
     mask = pd.Series(False, index=df.index)
@@ -440,6 +446,19 @@ def _filter_df_for_fit(df: pd.DataFrame, joint_info: dict) -> pd.DataFrame:
     if div_threshold and "best_val_loss" in filtered.columns and "final_val_loss" in filtered.columns:
         gap = filtered["final_val_loss"] - filtered["best_val_loss"]
         filtered = filtered[gap <= div_threshold]
+
+    # Dedup: if d50m and d552k duplicates exist, keep d50m (matching fit pipeline)
+    if expected_n and len(filtered) > expected_n:
+        d552k_mask = filtered["run_name"].str.contains("d552k")
+        if d552k_mask.any():
+            # For each d552k row, check if a d50m counterpart exists
+            to_drop = []
+            for idx in filtered.index[d552k_mask]:
+                name = filtered.loc[idx, "run_name"]
+                d50m_name = name.replace("d552k", "d50m")
+                if (filtered["run_name"] == d50m_name).any():
+                    to_drop.append(idx)
+            filtered = filtered.drop(to_drop)
 
     # Keep original CSV order to match fit y_true/y_pred ordering
     filtered = filtered.reset_index(drop=True)
@@ -485,6 +504,60 @@ def fig_pred_vs_true_colored(fit_result: dict, df: pd.DataFrame, save_dir: str,
                   bbox_to_anchor=(0.5, 1.02), ncol=4, frameon=False,
                   fontsize=10, title_fontsize=10)
     ax.set_aspect("equal")
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(f"{save_dir}/{filename}.pdf")
+    plt.savefig(f"{save_dir}/{filename}.png")
+    plt.close()
+
+
+def fig_per_llm_residuals_a(fit_result: dict, save_dir: str,
+                             filename: str = "fig_per_llm_residuals_a"):
+    """Per-LLM fixed effects: (a) intercepts only, single panel."""
+    per_llm_eps = fit_result.get("per_llm_eps", {})
+    if not per_llm_eps:
+        return
+
+    fig, ax = plt.subplots(figsize=(7, 5.5))
+
+    llms = sorted(per_llm_eps.keys(), key=lambda x: LLM_PARAMS.get(x.split("-")[-1], 0))
+    labels = [l.split("-")[-1] for l in llms]
+    eps_vals = [per_llm_eps[l] for l in llms]
+    colors = [LLM_COLORS.get(lab, "gray") for lab in labels]
+
+    bars = ax.bar(range(len(labels)), eps_vals, color=colors, edgecolor="black",
+                  linewidth=0.5, alpha=0.8)
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, fontsize=12)
+    ax.axhline(0, color="black", linestyle="-", linewidth=0.5)
+    ax.set_ylabel(r"$\varepsilon_i$ (LLM bias)", fontsize=20)
+    ax.set_xlabel("LLM Size", fontsize=20)
+    ax.grid(True, alpha=0.3, axis="y")
+
+    for i, (v, _) in enumerate(zip(eps_vals, bars)):
+        ax.text(i, v + 0.003 * (1 if v >= 0 else -1),
+                f"{v:+.3f}", ha="center", va="bottom" if v >= 0 else "top",
+                fontsize=12, fontweight="bold")
+
+    plt.tight_layout()
+    plt.savefig(f"{save_dir}/{filename}.pdf")
+    plt.savefig(f"{save_dir}/{filename}.png")
+    plt.close()
+
+
+def fig_per_llm_residuals_b(fit_result: dict, save_dir: str,
+                             filename: str = "fig_per_llm_residuals_b"):
+    """Per-LLM fixed effects: (b) residual histogram only, single panel."""
+    y_true = np.array(fit_result["y_true"])
+    y_pred = np.array(fit_result["y_pred"])
+    residuals = y_true - y_pred
+
+    fig, ax = plt.subplots(figsize=(7, 5.5))
+    ax.hist(residuals, bins=30, alpha=0.7, color="steelblue", edgecolor="white")
+    ax.axvline(0, color="red", linestyle="--", linewidth=1.5, alpha=0.7)
+    ax.set_xlabel("Residual (Observed $-$ Predicted)", fontsize=20)
+    ax.set_ylabel("Count", fontsize=20)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -649,51 +722,73 @@ def fig_t_multi_d(df: pd.DataFrame, save_dir: str,
 
 def fig_extrapolation(extrap_result: dict, save_dir: str,
                        filename: str = "fig9_extrapolation"):
-    """Extrapolation validation: fit on ≤14B, predict 32B."""
+    """Extrapolation validation: fit on ≤14B, predict 32B.
+
+    Dumbbell chart: each config as a row, showing actual vs predicted
+    with error segments and color-coded by error magnitude.
+    """
     y_true = np.array(extrap_result["y_true"])
     y_pred = np.array(extrap_result["y_pred"])
+    labels = extrap_result.get("labels", [f"Config {i}" for i in range(len(y_true))])
     mape = extrap_result.get("mape", 0)
 
-    fig, ax = plt.subplots(figsize=(7, 7))
+    errors = np.abs(y_true - y_pred) / y_true * 100
 
-    lims = [min(y_true.min(), y_pred.min()) - 0.1,
-            max(y_true.max(), y_pred.max()) + 0.1]
-    # Identity line
-    id_line = np.linspace(lims[0], lims[1], 100)
-    ax.plot(id_line, id_line, "k--", alpha=0.5, linewidth=1)
-    # ±15% band
-    ax.fill_between(id_line, id_line * 0.85, id_line * 1.15,
-                     alpha=0.08, color="gray", label="±15% band")
+    # Sort by error (best at top)
+    order = np.argsort(errors)
+    y_true = y_true[order]
+    y_pred = y_pred[order]
+    errors = errors[order]
+    labels = [labels[i] for i in order]
 
-    # Vertical connectors (actual → predicted)
-    for yt, yp in zip(y_true, y_pred):
-        ax.plot([yt, yt], [yt, yp], color="crimson", alpha=0.4, linewidth=1.5)
+    n = len(y_true)
+    fig, ax = plt.subplots(figsize=(7, 4.5))
 
-    # Actual (open) on identity, Predicted (filled) off identity
-    ax.scatter(y_true, y_true, s=80, facecolors="none", edgecolors="gray",
+    # ±15% band around actual
+    for i in range(n):
+        ax.fill_betweenx([i - 0.3, i + 0.3],
+                          y_true[i] * 0.85, y_true[i] * 1.15,
+                          alpha=0.06, color="gray", zorder=0)
+
+    # Error segments (actual → predicted) — uniform blue
+    for i in range(n):
+        ax.plot([y_true[i], y_pred[i]], [i, i],
+                color="#2171b5", linewidth=2.5, alpha=0.5, zorder=2)
+
+    # Actual markers — consistent black open circles
+    ax.scatter(y_true, range(n), s=90, facecolors="none", edgecolors="black",
                linewidth=1.5, zorder=5, label="Actual (32B)")
-    ax.scatter(y_true, y_pred, s=80, c="crimson", edgecolors="black",
+    # Predicted markers — consistent filled blue
+    ax.scatter(y_pred, range(n), s=90, c="#2171b5", edgecolors="black",
                linewidth=0.5, zorder=6, label="Predicted (1.5B–14B law)")
 
-    # Annotate best point
-    errors = np.abs(y_true - y_pred) / y_true
-    best_idx = np.argmin(errors)
-    ax.annotate(f"{errors[best_idx]*100:.0f}% err",
-                xy=(y_true[best_idx], y_pred[best_idx]),
-                xytext=(15, -20), textcoords="offset points",
-                fontsize=9, arrowprops=dict(arrowstyle="->", color="black", lw=0.8))
+    # Error annotations
+    for i in range(n):
+        ax.text(max(y_true[i], y_pred[i]) + 0.03, i,
+                f"{errors[i]:.0f}%", va="center", fontsize=8,
+                color="#333333", fontweight="bold")
 
-    ax.set_xlabel("Observed Loss (32B)")
-    ax.set_ylabel("Predicted Loss (from 1.5B–14B law)")
-    ax.set_xlim(lims)
-    ax.set_ylim(lims)
-    ax.set_aspect("equal")
-    ax.legend(loc="upper left", fontsize=9, framealpha=0.9)
-    ax.grid(True, alpha=0.3)
+    ax.set_yticks(range(n))
+    ax.set_yticklabels(labels, fontsize=8)
+    ax.set_xlabel("Validation Loss")
+    ax.set_xlim(min(y_pred.min(), y_true.min()) - 0.15,
+                max(y_true.max(), y_pred.max()) + 0.25)
+    ax.invert_yaxis()
+
+    # MAPE annotation
+    ax.text(0.97, 0.03, f"MAPE = {mape:.1f}%",
+            transform=ax.transAxes, ha="right", va="bottom",
+            fontsize=10, fontweight="bold",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.8))
+
+    ax.legend(loc="upper right", fontsize=8, framealpha=0.9,
+              bbox_to_anchor=(1.0, 1.0))
+    ax.grid(True, axis="x", alpha=0.3)
+    ax.set_axisbelow(True)
 
     plt.tight_layout()
     plt.savefig(f"{save_dir}/{filename}.pdf")
-    plt.savefig(f"{save_dir}/{filename}.png")
+    plt.savefig(f"{save_dir}/{filename}.png", dpi=200)
     plt.close()
 
 
@@ -882,7 +977,7 @@ if __name__ == "__main__":
     parser.add_argument("--csv", type=str, default=None)
     parser.add_argument("--json", type=str, default=None,
                         help="Path to scaling_fit_results.json")
-    parser.add_argument("--save_dir", type=str, default="analysis/figures")
+    parser.add_argument("--save_dir", type=str, default="analysis/fix2")
     args = parser.parse_args()
     generate_all_figures(results_dir=args.results_dir, csv_path=args.csv,
                          json_path=args.json, save_dir=args.save_dir)
