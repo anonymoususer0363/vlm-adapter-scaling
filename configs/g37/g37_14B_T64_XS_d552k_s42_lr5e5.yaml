@@ -1,0 +1,15 @@
+llm_name: Qwen/Qwen2.5-14B
+adapter_level: XS
+num_queries: 64
+seed: 42
+run_name: g37_14B_T64_XS_d552k_s42_lr5e5
+num_epochs: 1
+batch_size: 8
+grad_accum_steps: 4
+lr: 5e-05
+eval_interval_steps: 500
+save_interval_steps: 2000
+train_data: data/processed/train.jsonl
+val_data: data/processed/val.jsonl
+image_root: data/llava_pretrain
+output_dir: checkpoints

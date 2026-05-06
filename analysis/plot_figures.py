@@ -619,6 +619,66 @@ def fig_per_llm_residuals(fit_result: dict, save_dir: str,
     plt.close()
 
 
+def fig_noise_floor_a(noise_result: dict, save_dir: str,
+                       filename: str = "fig_noise_floor_a"):
+    """Noise floor (a) only: per-config seed std bar chart."""
+    mean_std = noise_result.get("mean_seed_std", 0.049)
+    seed_stds = noise_result.get("seed_stds", {})
+    if not seed_stds:
+        return
+
+    fig, ax = plt.subplots(figsize=(7, 5.5))
+    configs = sorted(seed_stds.keys())
+    stds = [seed_stds[c] for c in configs]
+    labels = [c.replace("g9_", "").replace("_d50m", "")
+              for c in configs]
+
+    ax.bar(range(len(stds)), stds, alpha=0.7,
+           color=[COLORS[i % len(COLORS)] for i in range(len(stds))],
+           edgecolor="black", linewidth=0.5)
+    ax.axhline(mean_std, color="red", linestyle="--", linewidth=1.5,
+               label=f"Mean σ = {mean_std:.3f}")
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=14)
+    ax.set_ylabel("Seed Std (σ)", fontsize=20)
+    ax.legend(fontsize=20)
+    ax.grid(True, alpha=0.3, axis="y")
+
+    plt.tight_layout()
+    plt.savefig(f"{save_dir}/{filename}.pdf")
+    plt.savefig(f"{save_dir}/{filename}.png")
+    plt.close()
+
+
+def fig_noise_floor_b(noise_result: dict, joint_r2: float, perlm_r2: float,
+                       save_dir: str, filename: str = "fig_noise_floor_b"):
+    """Noise floor (b) only: R² vs noise ceiling horizontal bars."""
+    max_r2 = noise_result.get("max_r2_mean", 0.976)
+
+    fig, ax = plt.subplots(figsize=(7, 5.5))
+    models = ["Standard\nJoint", "Per-LLM\nFixed Effects", "Noise\nCeiling"]
+    r2_vals = [joint_r2, perlm_r2, max_r2]
+    colors_bar = ["steelblue", "darkorange", "crimson"]
+
+    bars = ax.barh(range(len(models)), r2_vals, color=colors_bar, alpha=0.8,
+                   edgecolor="black", linewidth=0.5, height=0.5)
+    ax.set_yticks(range(len(models)))
+    ax.set_yticklabels(models, fontsize=15)
+    ax.set_xlabel("R²", fontsize=20)
+    ax.set_xlim(0.75, 1.0)
+    ax.grid(True, alpha=0.3, axis="x")
+
+    for i, (v, _) in enumerate(zip(r2_vals, bars)):
+        pct = v / max_r2 * 100 if i < 2 else 100
+        ax.text(v + 0.003, i, f"{v:.3f} ({pct:.0f}%)",
+                va="center", fontsize=13, fontweight="bold")
+
+    plt.tight_layout()
+    plt.savefig(f"{save_dir}/{filename}.pdf")
+    plt.savefig(f"{save_dir}/{filename}.png")
+    plt.close()
+
+
 def fig_noise_floor(noise_result: dict, joint_r2: float, perlm_r2: float,
                      save_dir: str, filename: str = "fig_noise_floor"):
     """Noise floor: R² ceiling from seed variance."""
@@ -633,7 +693,7 @@ def fig_noise_floor(noise_result: dict, joint_r2: float, perlm_r2: float,
     if seed_stds:
         configs = sorted(seed_stds.keys())
         stds = [seed_stds[c] for c in configs]
-        labels = [c.replace("g9_", "").replace("_d50m", "").replace("3B_", "")
+        labels = [c.replace("g9_", "").replace("_d50m", "")
                   for c in configs]
 
         bars = ax.bar(range(len(stds)), stds, alpha=0.7,
@@ -642,9 +702,9 @@ def fig_noise_floor(noise_result: dict, joint_r2: float, perlm_r2: float,
         ax.axhline(mean_std, color="red", linestyle="--", linewidth=1.5,
                    label=f"Mean σ = {mean_std:.3f}")
         ax.set_xticks(range(len(labels)))
-        ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=9)
-        ax.set_ylabel("Seed Std (σ)")
-        ax.set_title("(a) Per-Config Seed Variance (G9)")
+        ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=15)
+        ax.set_ylabel("Seed Std (σ)", fontsize=20)
+        ax.set_title("(a)")
         ax.legend()
         ax.grid(True, alpha=0.3, axis="y")
 
@@ -657,9 +717,9 @@ def fig_noise_floor(noise_result: dict, joint_r2: float, perlm_r2: float,
     bars = ax.barh(range(len(models)), r2_vals, color=colors_bar, alpha=0.8,
                    edgecolor="black", linewidth=0.5, height=0.5)
     ax.set_yticks(range(len(models)))
-    ax.set_yticklabels(models, fontsize=12)
-    ax.set_xlabel("R²")
-    ax.set_title("(b) R² vs Noise Ceiling")
+    ax.set_yticklabels(models, fontsize=15)
+    ax.set_xlabel("R²", fontsize=20)
+    ax.set_title("(b)")
     ax.set_xlim(0.75, 1.0)
     ax.grid(True, alpha=0.3, axis="x")
 

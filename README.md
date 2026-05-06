@@ -38,7 +38,7 @@ source setup_env.sh
 bash scripts/run.sh g26
 ```
 
-All 441 YAML configs are in `configs/`. Each specifies the LLM, adapter level, token count, data size, learning rate, and seed.
+All reported experiment configurations are released as YAML under `configs/`. Each specifies the LLM, adapter level, token count, data size, learning rate, and seed. `configs/g37/` contains the width-specific LR diagnostic at 3B and 14B (Appendix~F of the paper).
 
 ### Key hyperparameters
 - Optimizer: AdamW ($\beta_1$=0.9, $\beta_2$=0.95, weight decay 0.1)
